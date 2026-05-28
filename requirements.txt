@@ -6,3 +6,4 @@ plotly>=5.18
 tabulate>=0.9
 pyproj>=3.6
 owslib>=0.28
+gunicorn>=21.0
