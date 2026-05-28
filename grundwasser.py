@@ -142,7 +142,7 @@ def cmd_dashboard(args):
     from config import DASH_PORT
     app = create_app()
     print(f"Dashboard: http://localhost:{DASH_PORT}/")
-    app.run(debug=False, port=DASH_PORT)
+    app.run(debug=False, host="0.0.0.0", port=DASH_PORT)
 
 
 # ---------------------------------------------------------------------------

@@ -29,7 +29,8 @@ COL_ABSTICH     = "abstich_m"       # Abstich m unter Oberkante Schutzrohr
 CACHE_DIR = Path.home() / ".grundwasser"
 
 # --- Dashboard ---
-DASH_PORT       = 8051
+import os
+DASH_PORT       = int(os.environ.get("PORT", 8051))
 DASH_REFRESH_MS = 14_400_000
 MAPBOX_STYLE    = "open-street-map"
 
