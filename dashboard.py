@@ -196,7 +196,7 @@ def _register_callbacks(app: Dash):
     def load_stations(_, name_filter):
         from fetcher import get_stations
         try:
-            df = get_stations(name_filter=name_filter or None, only_with_data=True)
+            df = get_stations(name_filter=name_filter or None)
             df_map = df.dropna(subset=["lat", "lon"])
             return df_map.to_dict("records"), f"{len(df_map):,} Messstellen"
         except Exception as e:
@@ -401,7 +401,7 @@ def _register_callbacks(app: Dash):
         # ── Durchschnitt Stadt / Region ────────────────────────────────────
         def _add_avg(label: str, bbox: tuple, color: str):
             try:
-                df_area = get_stations(bbox_wgs84=bbox, only_with_data=True)
+                df_area = get_stations(bbox_wgs84=bbox)
                 if df_area.empty:
                     info_parts.append(f"Ø {label}: keine Stationen")
                     return
