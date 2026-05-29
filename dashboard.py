@@ -44,7 +44,9 @@ def _rgba(hex6: str, alpha: float) -> str:
 
 
 def _start_update_check():
-    import threading
+    import os, threading
+    if os.environ.get("DISABLE_UPDATE_CHECK"):
+        return
     from fetcher import check_for_updates
     t = threading.Thread(target=check_for_updates, daemon=True, name="update-check")
     t.start()
@@ -198,7 +200,9 @@ def _register_callbacks(app: Dash):
         try:
             df = get_stations(name_filter=name_filter or None)
             df_map = df.dropna(subset=["lat", "lon"])
-            return df_map.to_dict("records"), f"{len(df_map):,} Messstellen"
+            keep = [c for c in ["messstelle_id", "name", "gemeinde_name", "lat", "lon"]
+                    if c in df_map.columns]
+            return df_map[keep].to_dict("records"), f"{len(df_map):,} Messstellen"
         except Exception as e:
             return [], f"Fehler: {str(e)[:80]}"
 
