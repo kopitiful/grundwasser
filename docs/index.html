@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grundwasser NRW</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+  <style>
+    :root {
+      --bg:      #1e1e2e;
+      --surface: #313244;
+      --mauve:   #cba6f7;
+      --blue:    #89b4fa;
+      --green:   #a6e3a1;
+      --red:     #f38ba8;
+      --yellow:  #f9e2af;
+      --text:    #cdd6f4;
+      --subtext: #a6adc8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid rgba(203,166,247,.2);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    h1 { color: var(--mauve); font-size: 1rem; white-space: nowrap; }
+    .lbl { color: var(--subtext); font-size: 0.75rem; white-space: nowrap; }
+    .chip {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid rgba(166,173,200,.27);
+      padding: 3px 9px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-family: inherit;
+    }
+    .chip:hover  { border-color: var(--mauve); }
+    .chip.active { background: rgba(203,166,247,.18); border-color: var(--mauve); color: var(--mauve); }
+    select {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid rgba(166,173,200,.27);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    #meta-info { color: var(--subtext); font-size: 0.72rem; margin-left: auto; white-space: nowrap; }
+    main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+    .pane { flex: 1; padding: 8px; min-width: 0; }
+    .chart-col { display: flex; flex-direction: column; gap: 6px; }
+    #info-bar {
+      background: var(--surface);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      color: var(--subtext);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+    }
+    #chart { flex: 1; min-height: 0; }
+    .time-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex-shrink: 0; }
+    .t-chip {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid rgba(166,173,200,.27);
+      padding: 3px 9px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-family: inherit;
+    }
+    .t-chip:hover  { border-color: var(--mauve); }
+    .t-chip.active { background: rgba(203,166,247,.18); border-color: var(--mauve); }
+    input[type=date] {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid rgba(166,173,200,.27);
+      padding: 3px 7px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-family: inherit;
+      color-scheme: dark;
+      width: 128px;
+    }
+    #loading {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; color: var(--subtext);
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">Lade Daten …</div>
+
+<header>
+  <h1>Grundwasser NRW</h1>
+  <span class="lbl">Region</span>
+  <div id="region-chips" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+  <span class="lbl" style="margin-left:4px">Stadt</span>
+  <select id="city-sel"><option value="">– keine –</option></select>
+  <span id="meta-info"></span>
+</header>
+
+<main>
+  <div class="pane"><div id="map" style="height:100%"></div></div>
+  <div class="pane chart-col">
+    <div id="info-bar">← Region oder Stadt wählen</div>
+    <div id="chart"></div>
+    <div class="time-row">
+      <button class="t-chip" data-days="180">6 Mo</button>
+      <button class="t-chip" data-days="365">1 J</button>
+      <button class="t-chip active" data-days="1825">5 J</button>
+      <button class="t-chip" data-days="0">Alles</button>
+      <span class="lbl" style="margin-left:6px">Von</span>
+      <input type="date" id="d-start">
+      <span class="lbl">Bis</span>
+      <input type="date" id="d-end">
+    </div>
+  </div>
+</main>
+
+<script>
+const BG = '#1e1e2e', SRF = '#313244';
+const MAUVE='#cba6f7', BLUE='#89b4fa', GREEN='#a6e3a1',
+      RED='#f38ba8', YELLOW='#f9e2af', TEXT='#cdd6f4', SUB='#a6adc8';
+const COLORS = [MAUVE, GREEN, YELLOW, RED, BLUE, SUB];
+
+const BASE = './data';
+let meta = null;
+let cache = {};          // label → [{datum,mittel_m,n_stationen}]
+let active = new Set(['NRW (gesamt)']);
+let cityActive = null;
+
+const today = new Date();
+let endDt  = today;
+let startDt = new Date(+today - 1825*864e5);
+
+const fmt = d => d ? d.toISOString().slice(0,10) : '';
+document.getElementById('d-start').value = fmt(startDt);
+document.getElementById('d-end').value   = fmt(endDt);
+
+// ── Load meta + stations in parallel ─────────────────────────
+Promise.all([
+  fetch(`${BASE}/meta.json`).then(r=>r.json()),
+  fetch(`${BASE}/stations.json`).then(r=>r.json()),
+]).then(([m, stations]) => {
+  meta = m;
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('meta-info').textContent =
+    `${stations.length.toLocaleString('de')} Messstellen · Stand ${m.updated}`;
+
+  buildRegionChips(m.areas.filter(a=>a.type==='region'));
+  buildCitySelect(m.areas.filter(a=>a.type==='city'));
+  renderMap(stations);
+
+  // Load default area
+  loadArea('NRW (gesamt)').then(renderChart);
+}).catch(e => {
+  document.getElementById('loading').textContent = 'Fehler beim Laden: ' + e.message;
+});
+
+// ── Region chips ──────────────────────────────────────────────
+function buildRegionChips(regions) {
+  const c = document.getElementById('region-chips');
+  regions.forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (active.has(a.label) ? ' active' : '');
+    b.textContent = a.label;
+    b.dataset.label = a.label;
+    b.onclick = () => toggleRegion(a.label, b);
+    c.appendChild(b);
+  });
+}
+
+async function toggleRegion(label, btn) {
+  if (active.has(label)) { active.delete(label); btn.classList.remove('active'); }
+  else                   { active.add(label);    btn.classList.add('active');
+                           await loadArea(label); }
+  renderChart();
+}
+
+// ── City select ───────────────────────────────────────────────
+function buildCitySelect(cities) {
+  const sel = document.getElementById('city-sel');
+  cities.forEach(a => {
+    const o = document.createElement('option');
+    o.value = o.textContent = a.label;
+    sel.appendChild(o);
+  });
+  sel.onchange = async () => {
+    if (cityActive) active.delete(cityActive);
+    cityActive = sel.value || null;
+    if (cityActive) { active.add(cityActive); await loadArea(cityActive); }
+    renderChart();
+  };
+}
+
+// ── Data loading ──────────────────────────────────────────────
+async function loadArea(label) {
+  if (cache[label]) return;
+  if (!meta) return;
+  const a = meta.areas.find(x=>x.label===label);
+  if (!a) return;
+  const d = await fetch(`${BASE}/${a.file}`).then(r=>r.json()).catch(()=>null);
+  if (d) cache[label] = d.data;
+}
+
+// ── Chart ─────────────────────────────────────────────────────
+function filterDate(data) {
+  return data.filter(d => {
+    const t = new Date(d.datum);
+    return (!startDt || t >= startDt) && (!endDt || t <= endDt);
+  });
+}
+
+function renderChart() {
+  const traces = [], info = [];
+  let colorIdx = 0, incompleteNote = false;
+  const now = new Date();
+
+  active.forEach(label => {
+    const raw = cache[label];
+    if (!raw) return;
+    const data = filterDate(raw);
+    if (!data.length) return;
+
+    const col = COLORS[colorIdx++ % COLORS.length];
+    const n   = Math.max(...data.map(d=>d.n_stationen));
+    const avg = (data.reduce((s,d)=>s+d.mittel_m,0)/data.length).toFixed(2);
+
+    traces.push({
+      x: data.map(d=>d.datum), y: data.map(d=>d.mittel_m),
+      type:'scatter', mode:'lines',
+      name:`Ø ${label} (n=${n})`,
+      line:{color:col, width:2.2},
+      hovertemplate:`<b>Ø ${label}</b>  %{x|%Y-%m}  %{y:.3f} m<extra></extra>`,
+    });
+
+    const last = new Date(data.at(-1).datum);
+    if (last.getFullYear()===now.getFullYear() && last.getMonth()===now.getMonth())
+      incompleteNote = true;
+
+    info.push(`Ø ${label}: ${avg} m · ${n} Stationen`);
+  });
+
+  const annos = incompleteNote ? [{
+    text:'(akt. Monat unvollständig – Meldungen gehen noch ein)',
+    xref:'paper', yref:'paper', x:1, y:0.02,
+    xanchor:'right', yanchor:'bottom', showarrow:false,
+    font:{size:9, color:SUB},
+  }] : [];
+
+  if (!traces.length) {
+    annos.push({text:'← Region oder Stadt wählen', xref:'paper', yref:'paper',
+      x:.5, y:.5, showarrow:false, font:{size:12, color:SUB}});
+  }
+
+  const xrange = startDt ? [fmt(startDt), fmt(endDt)] : undefined;
+
+  Plotly.react('chart', traces, {
+    template:'plotly_dark', paper_bgcolor:BG, plot_bgcolor:SRF,
+    font:{color:TEXT, family:'monospace', size:11},
+    xaxis:{gridcolor:'rgba(166,173,200,.13)', title:'', ...(xrange?{range:xrange}:{})},
+    yaxis:{gridcolor:'rgba(166,173,200,.13)', title:'GW-Stand (m ü. NN)', range:[40,60]},
+    legend:{orientation:'v', x:.01, y:.99, xanchor:'left', yanchor:'top',
+      font:{size:10}, bgcolor:'rgba(49,50,68,.82)',
+      bordercolor:'rgba(166,173,200,.2)', borderwidth:1},
+    margin:{l:55,r:50,t:20,b:40},
+    annotations: annos,
+  }, {responsive:true});
+
+  document.getElementById('info-bar').textContent =
+    info.length ? info.join('  |  ') : '← Region oder Stadt wählen';
+}
+
+// ── Map ───────────────────────────────────────────────────────
+function renderMap(stations) {
+  Plotly.react('map', [{
+    type:'scattermapbox',
+    lat: stations.map(s=>s.lat),
+    lon: stations.map(s=>s.lon),
+    mode:'markers',
+    marker:{size:7, color:BLUE, opacity:.8},
+    text: stations.map(s=>`<b>${s.name||s.messstelle_id}</b><br>ID: ${s.messstelle_id}<br>${s.gemeinde_name||''}`),
+    hoverinfo:'text',
+  }], {
+    mapbox:{style:'open-street-map', center:{lat:51.5,lon:7.5}, zoom:7},
+    paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+    margin:{l:0,r:0,t:0,b:0}, font:{color:TEXT},
+  }, {responsive:true});
+}
+
+// ── Time buttons ──────────────────────────────────────────────
+document.querySelectorAll('.t-chip').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.t-chip').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const days = +b.dataset.days;
+    endDt = new Date();
+    startDt = days > 0 ? new Date(+endDt - days*864e5) : null;
+    document.getElementById('d-start').value = fmt(startDt);
+    document.getElementById('d-end').value   = fmt(endDt);
+    renderChart();
+  };
+});
+
+document.getElementById('d-start').onchange = e => {
+  startDt = e.target.value ? new Date(e.target.value) : null;
+  renderChart();
+};
+document.getElementById('d-end').onchange = e => {
+  endDt = e.target.value ? new Date(e.target.value) : new Date();
+  renderChart();
+};
+</script>
+</body>
+</html>

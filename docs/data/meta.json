@@ -1,0 +1,110 @@
+{
+  "areas": [
+    {
+      "label": "NRW (gesamt)",
+      "file": "avg_NRW_gesamt.json",
+      "type": "region"
+    },
+    {
+      "label": "Ruhrgebiet",
+      "file": "avg_Ruhrgebiet.json",
+      "type": "region"
+    },
+    {
+      "label": "Westfalen",
+      "file": "avg_Westfalen.json",
+      "type": "region"
+    },
+    {
+      "label": "Bergisches Land",
+      "file": "avg_Bergisches_Land.json",
+      "type": "region"
+    },
+    {
+      "label": "Rheinland",
+      "file": "avg_Rheinland.json",
+      "type": "region"
+    },
+    {
+      "label": "Münsterland",
+      "file": "avg_Münsterland.json",
+      "type": "region"
+    },
+    {
+      "label": "Sauerland",
+      "file": "avg_Sauerland.json",
+      "type": "region"
+    },
+    {
+      "label": "Eifel",
+      "file": "avg_Eifel.json",
+      "type": "region"
+    },
+    {
+      "label": "Aachen",
+      "file": "avg_Aachen.json",
+      "type": "city"
+    },
+    {
+      "label": "Bielefeld",
+      "file": "avg_Bielefeld.json",
+      "type": "city"
+    },
+    {
+      "label": "Bochum",
+      "file": "avg_Bochum.json",
+      "type": "city"
+    },
+    {
+      "label": "Bonn",
+      "file": "avg_Bonn.json",
+      "type": "city"
+    },
+    {
+      "label": "Dortmund",
+      "file": "avg_Dortmund.json",
+      "type": "city"
+    },
+    {
+      "label": "Duisburg",
+      "file": "avg_Duisburg.json",
+      "type": "city"
+    },
+    {
+      "label": "Düsseldorf",
+      "file": "avg_Düsseldorf.json",
+      "type": "city"
+    },
+    {
+      "label": "Essen",
+      "file": "avg_Essen.json",
+      "type": "city"
+    },
+    {
+      "label": "Gelsenkirchen",
+      "file": "avg_Gelsenkirchen.json",
+      "type": "city"
+    },
+    {
+      "label": "Köln",
+      "file": "avg_Köln.json",
+      "type": "city"
+    },
+    {
+      "label": "Krefeld",
+      "file": "avg_Krefeld.json",
+      "type": "city"
+    },
+    {
+      "label": "Münster",
+      "file": "avg_Münster.json",
+      "type": "city"
+    },
+    {
+      "label": "Wuppertal",
+      "file": "avg_Wuppertal.json",
+      "type": "city"
+    }
+  ],
+  "updated": "2026-05-29"
+}
