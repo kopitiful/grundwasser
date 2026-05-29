@@ -2,7 +2,7 @@
   "areas": [
     {
       "label": "NRW (gesamt)",
-      "file": "avg_NRW_gesamt.json",
+      "file": "avg_NRW__gesamt_.json",
       "type": "region"
     },
     {
@@ -106,5 +106,6 @@
       "type": "city"
     }
   ],
-  "updated": "2026-05-29"
+  "updated": "2026-05-29",
+  "start_year": 1990
 }

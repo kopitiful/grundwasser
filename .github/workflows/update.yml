@@ -29,8 +29,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.grundwasser
-          key: gw-data-${{ github.run_id }}
-          restore-keys: gw-data-
+          key: gw-zips-v2-${{ github.run_id }}
+          restore-keys: gw-zips-v2-
 
       - name: Install dependencies
         run: pip install -r requirements.txt
