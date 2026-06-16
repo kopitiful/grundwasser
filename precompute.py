@@ -34,6 +34,12 @@ def slug(label: str) -> str:
 print("=== Grundwasser Precompute ===")
 print(f"Zeitraum: ab {START_YEAR}")
 
+# Aktuelles Dekaden-ZIP immer neu laden (historische ZIPs bleiben gecacht)
+current_zip = CACHE_DIR / f"wasserstand_{NEEDED_DECADES[-1]}.zip"
+if current_zip.exists():
+    current_zip.unlink()
+    print(f"  {NEEDED_DECADES[-1]}.zip gelöscht → wird frisch heruntergeladen")
+
 # ── 1. Stationen exportieren ─────────────────────────────────────────────────
 print("\n[1/4] Exportiere Stationen …")
 df_all = get_stations()
